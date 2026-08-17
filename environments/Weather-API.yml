@@ -1,0 +1,4 @@
+name: Weather-API
+variables:
+  - secret: true
+    name: API-Key
