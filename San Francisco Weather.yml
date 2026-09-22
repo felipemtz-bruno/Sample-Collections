@@ -21,8 +21,114 @@ http:
     key: "{{API-Key}}"
     placement: query
 
+runtime:
+  scripts:
+    - type: after-response
+      code: |-
+        const { kelvinToFahrenheit } = require('./Temp-sample-scripts.js');
+
+        const tempK = res('main.temp');
+        const feelsLikeK = res('main.feels_like');
+
+        bru.setVar('tempF', kelvinToFahrenheit(tempK));
+        bru.setVar('feelsLikeF', kelvinToFahrenheit(feelsLikeK));
+
+        console.log(`${res('name')}: ${bru.getVar('tempF')}°F (feels like ${bru.getVar('feelsLikeF')}°F)`);
+
 settings:
   encodeUrl: true
   timeout: 0
   followRedirects: true
   maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+docs: |-
+  # Current Weather by Coordinates
+
+  Retrieve current weather conditions for a specific geographic location using latitude and longitude coordinates. This request uses the OpenWeatherMap Current Weather Data API.
+
+  ## Endpoint
+
+  ```http
+  GET https://api.openweathermap.org/data/2.5/weather
+  ```
+
+  ## Authentication
+
+  This request requires an API key from OpenWeatherMap. The key is passed as the `appid` query parameter and is stored in the `API-Key` environment variable (secret).
+
+  To obtain an API key, sign up at [openweathermap.org](https://openweathermap.org/api).
+
+  ## Query Parameters
+
+  | Parameter | Type   | Required | Description                                       |
+  |-----------|--------|----------|---------------------------------------------------|
+  | `lat`     | number | Yes      | Latitude of the location (e.g., `37.7749`)        |
+  | `lon`     | number | Yes      | Longitude of the location (e.g., `-122.4194`)     |
+  | `appid`   | string | Yes      | Your OpenWeatherMap API key (`{{API-Key}}`)       |
+
+  The default coordinates (`37.7749, -122.4194`) point to **San Francisco, CA**.
+
+  ## Example Request
+
+  ```bash
+  curl "https://api.openweathermap.org/data/2.5/weather?lat=37.7749&lon=-122.4194&appid=YOUR_API_KEY"
+  ```
+
+  ## Example Response
+
+  ```json
+  {
+    "coord": { "lon": -122.4194, "lat": 37.7749 },
+    "weather": [
+      {
+        "id": 800,
+        "main": "Clear",
+        "description": "clear sky",
+        "icon": "01d"
+      }
+    ],
+    "main": {
+      "temp": 289.15,
+      "feels_like": 288.42,
+      "temp_min": 287.04,
+      "temp_max": 291.15,
+      "pressure": 1017,
+      "humidity": 60
+    },
+    "wind": { "speed": 3.6, "deg": 260 },
+    "name": "San Francisco",
+    "cod": 200
+  }
+  ```
+
+  > **Note:** Temperature values are returned in Kelvin by default. Add `&units=imperial` for Fahrenheit or `&units=metric` for Celsius.
+
+  ## Response Fields
+
+  | Field                  | Type   | Description                                  |
+  |------------------------|--------|----------------------------------------------|
+  | `coord`                | object | Latitude and longitude of the location       |
+  | `weather[]`            | array  | Weather condition details                    |
+  | `main.temp`            | number | Current temperature                          |
+  | `main.feels_like`      | number | Perceived temperature                        |
+  | `main.humidity`        | number | Humidity percentage                          |
+  | `wind.speed`           | number | Wind speed                                   |
+  | `name`                 | string | Location name                                |
+  | `cod`                  | number | Internal status code                         |
+
+  ## Status Codes
+
+  | Code | Description                                       |
+  |------|---------------------------------------------------|
+  | 200  | Success — weather data returned                   |
+  | 401  | Unauthorized — invalid or missing API key         |
+  | 404  | Not found — invalid coordinates                   |
+  | 429  | Too many requests — rate limit exceeded           |
+
+  ## Runtime Variables
+
+  This request may populate the following runtime variables via post-response scripts:
+
+  - `tempF` — current temperature converted to Fahrenheit
+  - `feelsLikeF` — "feels like" temperature converted to Fahrenheit

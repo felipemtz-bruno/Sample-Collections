@@ -21,8 +21,27 @@ http:
     key: "{{API-Key}}"
     placement: query
 
+runtime:
+  scripts:
+    - type: after-response
+      code: |-
+        const { kelvinToFahrenheit } = require('./Temp-sample-scripts.js');
+
+        const tempK = res('main.temp');
+        const feelsLikeK = res('main.feels_like');
+
+        bru.setVar('tempF', kelvinToFahrenheit(tempK));
+        bru.setVar('feelsLikeF', kelvinToFahrenheit(feelsLikeK));
+
+        console.log(`${res('name')}: ${bru.getVar('tempF')}°F (feels like ${bru.getVar('feelsLikeF')}°F)`);
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "200"
+
 settings:
   encodeUrl: true
   timeout: 0
   followRedirects: true
   maxRedirects: 5
+  forwardAuthorizationHeader: true
