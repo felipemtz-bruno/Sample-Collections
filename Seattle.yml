@@ -1,5 +1,5 @@
 info:
-  name: Seattle Weather
+  name: Seattle
   type: http
   seq: 1
 
